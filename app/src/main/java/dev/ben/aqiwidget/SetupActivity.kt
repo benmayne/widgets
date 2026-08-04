@@ -2,11 +2,17 @@ package dev.ben.aqiwidget
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.net.Uri
 import android.os.Bundle
+import android.os.CancellationSignal
+import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import dev.ben.aqiwidget.provider.Providers
+import java.util.Locale
 
 /**
  * Exists for one structural reason: widgets cannot request runtime permissions, so something
@@ -19,6 +25,14 @@ import dev.ben.aqiwidget.provider.Providers
 class SetupActivity : Activity() {
 
     private lateinit var status: TextView
+
+    /**
+     * Held so the one-shot fix in [requestOneShotFix] can be cancelled in [onDestroy]. Without
+     * this, backing out of the screen leaves the request running and its callback holding a
+     * destroyed Activity — this is the app's only deliberate battery expenditure, so it
+     * deserves the matching discipline.
+     */
+    private var locationCancellationSignal: CancellationSignal? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,10 +60,32 @@ class SetupActivity : Activity() {
         grantResults: IntArray,
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_CODE) {
-            AqiWidgetProvider.requestRefresh(this)
-            showStatus()
+        if (requestCode != REQUEST_CODE) return
+
+        val granted = grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        val permanentlyDenied = !granted &&
+            !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (permanentlyDenied) {
+            // No further requestPermissions() call will ever show a dialog again — the only
+            // way out is the app's own settings page.
+            status.text = getString(R.string.permission_permanently_denied)
+            startActivity(
+                Intent(
+                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", packageName, null),
+                )
+            )
+            return
         }
+
+        AqiWidgetProvider.requestRefresh(this)
+        showStatus()
+    }
+
+    override fun onDestroy() {
+        locationCancellationSignal?.cancel()
+        super.onDestroy()
     }
 
     /**
@@ -67,9 +103,11 @@ class SetupActivity : Activity() {
             return
         }
         status.text = getString(R.string.finding_location)
+        val cancellationSignal = CancellationSignal()
+        locationCancellationSignal = cancellationSignal
         manager.getCurrentLocation(
-            LocationManager.NETWORK_PROVIDER,
-            null,
+            LocationManager.FUSED_PROVIDER,
+            cancellationSignal,
             mainExecutor,
         ) { location ->
             if (location == null) {
@@ -114,7 +152,7 @@ class SetupActivity : Activity() {
             )
             appendLine(
                 if (coordinates == null) "No location known yet"
-                else "Near %.2f, %.2f".format(coordinates.lat, coordinates.lon)
+                else "Near %.2f, %.2f".format(Locale.US, coordinates.lat, coordinates.lon)
             )
         }
     }

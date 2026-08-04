@@ -7,4 +7,5 @@
     <string name="finding_location">Finding your location…</string>
     <string name="no_fix">Could not get a location fix. Try again outdoors or with Wi-Fi on.</string>
     <string name="location_unavailable">Location services are unavailable on this device.</string>
+    <string name="permission_permanently_denied">Location permission was permanently denied. Opening app settings — enable it there.</string>
 </resources>
