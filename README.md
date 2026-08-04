@@ -64,8 +64,15 @@ fine on screen.
 Provider selection is a compile-time constant rather than a settings screen, deliberately. The
 interface is what buys flexibility; a picker would be furniture.
 
-API keys, if a future provider needs one, go in a `BuildConfig` field fed from
-`local.properties` (gitignored). Open-Meteo needs none.
+`Reading.station` carries the reporting ground station's identifier for station-based sources
+(WAQI, AirNow); it is null for model-based ones like Open-Meteo. It is plumbed all the way
+through `ReadingStore` and rendered by `SetupActivity` when present, so adding a station-based
+provider is a one-file change — write the `AqiProvider` and swap the `Providers.ACTIVE` line —
+not four.
+
+Open-Meteo needs no API key. If a future provider does, the intended extension point is a
+`BuildConfig` field fed from `local.properties` (gitignored) — that plumbing does not exist
+yet and would need to be added alongside that provider.
 
 ## Architecture
 
@@ -92,7 +99,7 @@ permissions**, so something with an `Activity` context must ask for `ACCESS_COAR
 
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-./gradlew :app:testDebugUnitTest    # 38 unit tests, no emulator needed
+./gradlew :app:testDebugUnitTest    # 42 unit tests, no emulator needed
 ./gradlew :app:assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
@@ -113,8 +120,9 @@ Tapping the tile refreshes it. If it shows a grey `—`, tapping opens the setup
 
 ## Testing
 
-38 JVM unit tests cover the scale boundaries and exact dimmed colors, Open-Meteo parsing and
-failure paths, repository caching and staleness, and timezone invariance.
+42 JVM unit tests cover the scale boundaries and exact dimmed colors, Open-Meteo parsing and
+failure paths (including the fetch-time timestamp fallback), repository caching, staleness,
+and station round-tripping, and timezone invariance including the default-zone path.
 
 Widget rendering is not unit-testable — `RemoteViews` and `AppWidgetManager` cannot be
 meaningfully exercised on the JVM, and mocking them would only test the mocks. It was instead
