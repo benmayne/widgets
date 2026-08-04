@@ -13,7 +13,7 @@ import java.time.format.DateTimeParseException
  * Reports `us_aqi` natively on the US EPA scale, so no normalization is needed. It is a
  * CAMS model forecast interpolated to the coordinate rather than a ground-sensor reading.
  */
-class OpenMeteoProvider : AqiProvider {
+class OpenMeteoProvider(private val now: () -> Long = System::currentTimeMillis) : AqiProvider {
 
     override val name: String = "Open-Meteo"
 
@@ -45,9 +45,20 @@ class OpenMeteoProvider : AqiProvider {
         return Reading(aqi = clampedAqi, observedAt = parseUtcMillis(current.optString("time", "")))
     }
 
-    private fun parseUtcMillis(iso: String): Long = try {
-        LocalDateTime.parse(iso).toInstant(ZoneOffset.UTC).toEpochMilli()
-    } catch (e: DateTimeParseException) {
-        throw IOException("Open-Meteo response has unparseable time '$iso'", e)
+    /**
+     * Falls back to the fetch time rather than throwing when the timestamp is absent or
+     * unparseable. The AqiProvider KDoc contract is "the measurement timestamp when it can be
+     * resolved unambiguously, otherwise the fetch time" — a bad timestamp is not a reason to
+     * discard an otherwise-good `us_aqi` and fall back to a stale cached reading upstream in
+     * AqiRepository. This mirrors the clamp decision above: a degraded-but-present value beats
+     * rejecting the whole reading.
+     */
+    private fun parseUtcMillis(iso: String): Long {
+        if (iso.isEmpty()) return now()
+        return try {
+            LocalDateTime.parse(iso).toInstant(ZoneOffset.UTC).toEpochMilli()
+        } catch (e: DateTimeParseException) {
+            now()
+        }
     }
 }

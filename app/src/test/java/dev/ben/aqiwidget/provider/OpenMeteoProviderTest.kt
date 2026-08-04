@@ -68,10 +68,23 @@ class OpenMeteoProviderTest {
     }
 
     @Test
-    fun `unparseable time raises IOException`() {
+    fun `unparseable time falls back to fetch time instead of throwing`() {
+        val fetchTime = 1_700_000_000_000L
+        val fixedClockProvider = OpenMeteoProvider(now = { fetchTime })
         val json = """{"current":{"time":"not-a-time","us_aqi":56}}"""
-        val e = runCatching { provider.parse(JSONObject(json)) }.exceptionOrNull()
-        assertTrue("$e", e is IOException)
+        val reading = fixedClockProvider.parse(JSONObject(json))
+        assertEquals(56, reading.aqi)
+        assertEquals(fetchTime, reading.observedAt)
+    }
+
+    @Test
+    fun `absent time falls back to fetch time instead of throwing`() {
+        val fetchTime = 1_700_000_000_000L
+        val fixedClockProvider = OpenMeteoProvider(now = { fetchTime })
+        val json = """{"current":{"us_aqi":56}}"""
+        val reading = fixedClockProvider.parse(JSONObject(json))
+        assertEquals(56, reading.aqi)
+        assertEquals(fetchTime, reading.observedAt)
     }
 
     @Test
