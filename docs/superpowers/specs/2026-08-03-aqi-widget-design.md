@@ -191,8 +191,13 @@ the refresh cadence below. Polling faster would return identical bytes.
 ## Location strategy
 
 `LocationManager.getLastKnownLocation()`, reading the OS's already-cached fix across the
-`gps`, `network`, and `passive` providers and taking the most recent. **The app never
-requests a location update**, so it never powers on GPS and its location cost is zero.
+`network` and `passive` providers and taking the most recent. **The app never requests a
+location update**, so it never powers on location hardware and its location cost is zero.
+
+The `gps` provider is deliberately excluded. `getLastKnownLocation(GPS_PROVIDER)` requires
+`ACCESS_FINE_LOCATION` — under coarse-only permission it always throws `SecurityException`,
+which this code would swallow, making it a dead branch. This app deliberately never requests
+fine location, so including `gps` here would only be a permanently-failing no-op.
 
 Permission: `ACCESS_COARSE_LOCATION` only. Fine location is neither needed nor requested —
 AQI varies over kilometers.

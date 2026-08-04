@@ -37,7 +37,6 @@ class AndroidLocationSource(private val context: Context) : LocationSource {
     override fun lastKnown(): Coordinates? {
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
         val providers = listOf(
-            LocationManager.GPS_PROVIDER,
             LocationManager.NETWORK_PROVIDER,
             LocationManager.PASSIVE_PROVIDER,
         )
