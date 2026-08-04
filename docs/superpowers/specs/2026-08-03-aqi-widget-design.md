@@ -24,7 +24,7 @@ Every design decision below resolves in that direction. Approximate location is 
 | Constraint | Value |
 |---|---|
 | minSdk | 31 (Android 12) — device runs far newer; a high floor avoids legacy branches |
-| targetSdk / compileSdk | 36 |
+| targetSdk / compileSdk | 37 — the platform Android Studio installed; compiling against the newest is standard and needs no extra download |
 | Language | Kotlin |
 | Third-party runtime dependencies | **Zero** |
 | Test dependencies | JUnit only |

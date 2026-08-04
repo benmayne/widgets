@@ -6,7 +6,7 @@
 
 **Architecture:** Pure-Kotlin core (`AqiScale`, `OpenMeteoProvider` parsing, `AqiRepository`) depends only on small interfaces in `Ports.kt`, so all logic is JVM-unit-testable with no emulator. A thin Android shell (`AqiWidgetProvider`, `SetupActivity`, `AppGraph`) supplies the real `LocationManager`/`SharedPreferences` implementations and renders `RemoteViews`. The data source sits behind an `AqiProvider` interface so it can be swapped without touching anything else.
 
-**Tech Stack:** Kotlin 2.0.21, AGP 8.9.2, Gradle 8.11.1, JDK 17 (Android Studio's bundled JBR), compileSdk 36, minSdk 31. Framework-only at runtime: `HttpURLConnection`, `org.json`, `RemoteViews`, `LocationManager`. JUnit 4 + a real `org.json` jar for tests.
+**Tech Stack:** Kotlin 2.0.21, AGP 8.9.2, Gradle 8.11.1, JDK 17 (Android Studio's bundled JBR), compileSdk 37, minSdk 31. Framework-only at runtime: `HttpURLConnection`, `org.json`, `RemoteViews`, `LocationManager`. JUnit 4 + a real `org.json` jar for tests.
 
 **Spec:** `docs/superpowers/specs/2026-08-03-aqi-widget-design.md`
 
@@ -15,7 +15,7 @@
 Every task's requirements implicitly include these. Values copied verbatim from the spec.
 
 - **Zero third-party runtime dependencies.** No OkHttp, Retrofit, Gson, Moshi, androidx, Glance, or Play Services. Test-only dependencies are permitted.
-- `minSdk = 31`, `targetSdk = 36`, `compileSdk = 36`.
+- `minSdk = 31`, `targetSdk = 37`, `compileSdk = 37`.
 - Package / namespace / applicationId: `dev.ben.aqiwidget`.
 - Location permission is **`ACCESS_COARSE_LOCATION` only**. Never request `ACCESS_FINE_LOCATION`.
 - The app **never requests background location updates.** The only active fix is the one-shot, user-initiated `getCurrentLocation()` in `SetupActivity`.
@@ -62,15 +62,21 @@ java -version
 ```
 Expected: `openjdk version "17..."` or newer.
 
-- [ ] **Step 3: Ensure the API 36 platform is installed**
+- [ ] **Step 3: Verify the SDK platform is present**
+
+Android Studio's first-run wizard already installed these; `cmdline-tools` is NOT installed, so
+do not attempt to use `sdkmanager`.
 
 ```bash
 export ANDROID_HOME="$HOME/Library/Android/sdk"
-"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "platform-tools"
+ls "$ANDROID_HOME/platforms" "$ANDROID_HOME/build-tools" "$ANDROID_HOME/platform-tools/adb"
 ```
-Expected: `done` or `All SDK package installations are already up to date.`
+Expected: `android-37.0`, `36.0.0`, and an `adb` path.
 
-Build-tools are deliberately not pinned here — AGP selects and downloads a compatible version itself, and pinning an exact one that does not exist is a common cause of a confusing first-build failure.
+If the platform directory is missing or differs, install it through Android Studio's GUI
+(Settings > Languages & Frameworks > Android SDK) and set `compileSdk`/`targetSdk` in Step 7
+to whatever is actually installed. Build-tools are deliberately not pinned in Gradle — AGP
+selects a compatible version itself.
 
 - [ ] **Step 4: Create `settings.gradle.kts`**
 
@@ -110,10 +116,15 @@ plugins {
 org.gradle.jvmargs=-Xmx2048m
 org.gradle.caching=true
 android.useAndroidX=false
+android.suppressUnsupportedCompileSdk=37
 kotlin.code.style=official
 ```
 
 `android.useAndroidX=false` is deliberate and enforces the zero-dependency constraint: the build fails if anything pulls in androidx.
+
+`android.suppressUnsupportedCompileSdk=37` silences AGP 8.9.2's "tested up to compileSdk 36"
+warning. If the build instead fails outright on the platform version, bump the AGP version in
+Step 5 to one that officially supports API 37 and re-run.
 
 - [ ] **Step 7: Create `app/build.gradle.kts`**
 
@@ -125,12 +136,12 @@ plugins {
 
 android {
     namespace = "dev.ben.aqiwidget"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "dev.ben.aqiwidget"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
     }
