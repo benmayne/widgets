@@ -27,15 +27,27 @@ interface AqiProvider {
 }
 
 /**
- * @property aqi US EPA scale. Providers clamp to 0-500 before constructing a [Reading], so this
- *   value is always in range even if the underlying source reports outside it.
+ * @property aqi US EPA scale, clamped to 0-500. Clamping lives here rather than in each
+ *   provider so the invariant travels with the type instead of depending on every provider
+ *   author remembering it: an anomalous reading still carries directional meaning — above 500
+ *   genuinely is hazardous — so clamping keeps the tile current and correctly colored at the
+ *   extreme instead of falling back to stale data. This is out-of-range protection only; it
+ *   does *not* detect a provider reporting on the wrong scale entirely (see [AqiProvider]'s
+ *   CONTRACT note), which is not mechanically detectable and relies on documentation and
+ *   reviewer diligence.
  * @property observedAt epoch millis of the measurement. Providers use the service's own
  *   measurement timestamp when it can be resolved unambiguously, otherwise the fetch time.
  * @property station identifier of the reporting ground station, or null for model-based
  *   sources such as Open-Meteo that have no station.
  */
-data class Reading(
+@ConsistentCopyVisibility
+data class Reading private constructor(
     val aqi: Int,
     val observedAt: Long,
     val station: String? = null,
-)
+) {
+    companion object {
+        operator fun invoke(aqi: Int, observedAt: Long, station: String? = null): Reading =
+            Reading(aqi.coerceIn(0, 500), observedAt, station)
+    }
+}

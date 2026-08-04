@@ -103,6 +103,8 @@ a rewrite. The seam:
  * normalizing. This is not incidental: the European AQI runs a different 0-100 scale on
  * which 60 is severe rather than moderate, so a provider returning its native scale would
  * silently invert the color mapping in AqiScale and render a green tile on hazardous air.
+ * This scale contract is NOT mechanically enforced — see below — and relies on
+ * documentation and reviewer diligence alone.
  */
 interface AqiProvider {
     val name: String
@@ -110,18 +112,32 @@ interface AqiProvider {
     fun fetch(lat: Double, lon: Double): Reading
 }
 
-data class Reading(
+// Reading's factory clamps aqi into 0..500; a private constructor keeps that the only way
+// to construct one, so no provider can forget it.
+data class Reading private constructor(
     val aqi: Int,                  // US EPA scale, clamped to 0-500
     val observedAt: Long,          // epoch millis of measurement
     val station: String? = null    // station-based providers only; null for model-based
-)
+) {
+    companion object {
+        operator fun invoke(aqi: Int, observedAt: Long, station: String? = null) =
+            Reading(aqi.coerceIn(0, 500), observedAt, station)
+    }
+}
 ```
 
-Providers **clamp** `aqi` into `0..500` rather than throwing on an out-of-range value. An
-anomalous reading still carries directional meaning — above 500 genuinely is hazardous — so
-clamping keeps the tile current and correctly colored at the extreme instead of falling back
-to stale data. Without enforcement the scale contract would be documentation nobody checks,
-which matters most for a provider swapped in later whose scale has not been verified by hand.
+`Reading`'s factory **clamps** `aqi` into `0..500` rather than throwing on an out-of-range
+value. An anomalous reading still carries directional meaning — above 500 genuinely is
+hazardous — so clamping keeps the tile current and correctly colored at the extreme instead
+of falling back to stale data. The clamp lives on the type itself (not in each provider) so
+the invariant travels with `Reading` rather than depending on every provider author
+remembering to apply it.
+
+**What the clamp does not do:** it only catches out-of-range values. A provider that reports
+correctly-shaped but wrong-scale numbers — the EU-scale "60 is severe" scenario described
+above — passes the clamp completely untouched, since an EU-scale 60 is inside 0-500. That
+hazard is not mechanically detectable from the number alone; it is enforced purely by the
+`AqiProvider` KDoc contract and reviewer diligence when a new provider is added.
 
 `station` is nullable to preserve a real asymmetry rather than flatten it: Open-Meteo is
 model-based and has no station, while WAQI and AirNow do. The 1x1 tile ignores it;

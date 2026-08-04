@@ -55,11 +55,16 @@ Implement `AqiProvider` and change one line in `provider/Providers.kt`:
 object Providers { val ACTIVE: AqiProvider = OpenMeteoProvider() }
 ```
 
-`Reading.aqi` must be on the **US EPA 0–500 scale**, and providers clamp into that range. This
-is load-bearing, not bureaucratic: the European AQI runs a different 0–100 scale on which 60
-is severe rather than moderate, so a provider returning its native scale would silently invert
-the color mapping and paint a **green tile on hazardous air** — a failure that looks perfectly
-fine on screen.
+`Reading.aqi` must be on the **US EPA 0–500 scale**. `Reading`'s own factory clamps into that
+range, so an out-of-range value can't slip through regardless of which provider constructs it.
+
+That clamp is **not** what protects against the scarier failure: the European AQI runs a
+different 0–100 scale on which 60 is severe rather than moderate, so a provider returning its
+native scale would silently invert the color mapping and paint a **green tile on hazardous
+air**. An EU-scale 60 is *inside* 0–500, so it passes the clamp untouched — the clamp only
+catches out-of-range values, not wrong-scale ones. There is no mechanical defense against a
+wrong-scale provider; it is load-bearing, not bureaucratic, that every new `AqiProvider`
+implementation is verified by hand against the `AqiProvider` KDoc contract before it ships.
 
 Provider selection is a compile-time constant rather than a settings screen, deliberately. The
 interface is what buys flexibility; a picker would be furniture.
@@ -82,8 +87,8 @@ emulator:
 | File | Responsibility |
 |---|---|
 | `AqiScale.kt` | AQI number → EPA category, colors, staleness, dimming |
-| `provider/AqiProvider.kt` | The swappable-source contract |
-| `provider/OpenMeteoProvider.kt` | URL building + JSON parsing + clamping |
+| `provider/AqiProvider.kt` | The swappable-source contract; `Reading`'s factory clamps `aqi` to 0-500 |
+| `provider/OpenMeteoProvider.kt` | URL building + JSON parsing |
 | `Ports.kt` | `LocationSource` / `ReadingStore` / `Clock` seams |
 | `AqiRepository.kt` | location → fetch → cache → `RenderState` |
 | `TimeFormat.kt` | epoch millis → local-time string |
