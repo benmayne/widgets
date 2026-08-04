@@ -56,13 +56,55 @@ class AqiScaleTest {
 
     @Test
     fun `dim blends 55 percent toward grey with integer math`() {
-        // green 0x00E400 -> r,b = (0*45 + 158*55 + 50)/100 = 87 = 0x57
-        //                     g = (228*45 + 158*55 + 50)/100 = 190 = 0xBE
+        // Formula: (f * 45 + 158 * 55 + 50) / 100 where 158 * 55 + 50 = 8740
+        //
+        // GOOD (0x00E400 = R:0, G:228, B:0):
+        //   R: (0 * 45 + 8740) / 100 = 87
+        //   G: (228 * 45 + 8740) / 100 = 190
+        //   B: (0 * 45 + 8740) / 100 = 87
         assertEquals(0xFF57BE57.toInt(), AqiScale.dim(AqiCategory.GOOD.background))
+
+        // MODERATE (0xFFFF00 = R:255, G:255, B:0):
+        //   R: (255 * 45 + 8740) / 100 = 202
+        //   G: (255 * 45 + 8740) / 100 = 202
+        //   B: (0 * 45 + 8740) / 100 = 87
+        assertEquals(0xFFCACA57.toInt(), AqiScale.dim(AqiCategory.MODERATE.background))
+
+        // UNHEALTHY_SENSITIVE (0xFF7E00 = R:255, G:126, B:0):
+        //   R: (255 * 45 + 8740) / 100 = 202
+        //   G: (126 * 45 + 8740) / 100 = 144
+        //   B: (0 * 45 + 8740) / 100 = 87
+        assertEquals(0xFFCA9057.toInt(), AqiScale.dim(AqiCategory.UNHEALTHY_SENSITIVE.background))
+
+        // UNHEALTHY (0xFF0000 = R:255, G:0, B:0):
+        //   R: (255 * 45 + 8740) / 100 = 202
+        //   G: (0 * 45 + 8740) / 100 = 87
+        //   B: (0 * 45 + 8740) / 100 = 87
+        assertEquals(0xFFCA5757.toInt(), AqiScale.dim(AqiCategory.UNHEALTHY.background))
+
+        // VERY_UNHEALTHY (0x8F3F97 = R:143, G:63, B:151):
+        //   R: (143 * 45 + 8740) / 100 = 151
+        //   G: (63 * 45 + 8740) / 100 = 115
+        //   B: (151 * 45 + 8740) / 100 = 155
+        assertEquals(0xFF97739B.toInt(), AqiScale.dim(AqiCategory.VERY_UNHEALTHY.background))
+
+        // HAZARDOUS (0x7E0023 = R:126, G:0, B:35):
+        //   R: (126 * 45 + 8740) / 100 = 144
+        //   G: (0 * 45 + 8740) / 100 = 87
+        //   B: (35 * 45 + 8740) / 100 = 103
+        assertEquals(0xFF905767.toInt(), AqiScale.dim(AqiCategory.HAZARDOUS.background))
     }
 
     @Test
-    fun `dim preserves alpha and is a no-op on grey itself`() {
+    fun `dim preserves alpha`() {
+        for (category in AqiCategory.entries) {
+            val dimmed = AqiScale.dim(category.background)
+            assertEquals("alpha preserved for ${category.name}", 0xFF, (dimmed ushr 24) and 0xFF)
+        }
+    }
+
+    @Test
+    fun `dim is a no-op on grey itself`() {
         val grey = 0xFF9E9E9E.toInt()
         assertEquals(grey, AqiScale.dim(grey))
     }
