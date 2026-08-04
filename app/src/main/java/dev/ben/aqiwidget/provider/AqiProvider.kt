@@ -27,7 +27,8 @@ interface AqiProvider {
 }
 
 /**
- * @property aqi US EPA scale, 0-500.
+ * @property aqi US EPA scale. Providers clamp to 0-500 before constructing a [Reading], so this
+ *   value is always in range even if the underlying source reports outside it.
  * @property observedAt epoch millis of the measurement. Providers use the service's own
  *   measurement timestamp when it can be resolved unambiguously, otherwise the fetch time.
  * @property station identifier of the reporting ground station, or null for model-based

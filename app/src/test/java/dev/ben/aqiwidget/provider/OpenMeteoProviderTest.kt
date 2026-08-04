@@ -78,4 +78,40 @@ class OpenMeteoProviderTest {
     fun `provider reports its name for the setup screen`() {
         assertEquals("Open-Meteo", provider.name)
     }
+
+    @Test
+    fun `in-range aqi passes through unchanged`() {
+        assertEquals(56, provider.parse(JSONObject(realResponse)).aqi)
+    }
+
+    @Test
+    fun `negative aqi clamps to 0`() {
+        val json = """{"current":{"time":"2026-08-03T19:00","us_aqi":-5}}"""
+        assertEquals(0, provider.parse(JSONObject(json)).aqi)
+    }
+
+    @Test
+    fun `aqi above 500 clamps to 500`() {
+        val json = """{"current":{"time":"2026-08-03T19:00","us_aqi":999}}"""
+        assertEquals(500, provider.parse(JSONObject(json)).aqi)
+    }
+
+    @Test
+    fun `boundary value 0 passes through unchanged`() {
+        val json = """{"current":{"time":"2026-08-03T19:00","us_aqi":0}}"""
+        assertEquals(0, provider.parse(JSONObject(json)).aqi)
+    }
+
+    @Test
+    fun `boundary value 500 passes through unchanged`() {
+        val json = """{"current":{"time":"2026-08-03T19:00","us_aqi":500}}"""
+        assertEquals(500, provider.parse(JSONObject(json)).aqi)
+    }
+
+    @Test
+    fun `non-numeric us_aqi raises IOException`() {
+        val json = """{"current":{"time":"2026-08-03T19:00","us_aqi":"abc"}}"""
+        val e = runCatching { provider.parse(JSONObject(json)) }.exceptionOrNull()
+        assertTrue("$e", e is IOException)
+    }
 }

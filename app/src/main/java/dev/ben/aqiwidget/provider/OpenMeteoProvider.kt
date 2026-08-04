@@ -38,7 +38,11 @@ class OpenMeteoProvider : AqiProvider {
         }
         val aqi = current.optInt("us_aqi", Int.MIN_VALUE)
         if (aqi == Int.MIN_VALUE) throw IOException("Open-Meteo us_aqi was not an integer")
-        return Reading(aqi = aqi, observedAt = parseUtcMillis(current.optString("time", "")))
+        // Clamp rather than reject: a reading outside 0-500 still carries directional meaning
+        // (e.g. above 500 genuinely is hazardous), so clamping keeps the tile current and
+        // correctly colored at the extreme instead of falling back to stale data.
+        val clampedAqi = aqi.coerceIn(0, 500)
+        return Reading(aqi = clampedAqi, observedAt = parseUtcMillis(current.optString("time", "")))
     }
 
     private fun parseUtcMillis(iso: String): Long = try {
