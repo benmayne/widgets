@@ -37,6 +37,26 @@ class TimeFormatTest {
     }
 
     @Test
+    fun `omitted zone resolves the system default and shifts when it changes`() {
+        // This is the exact mechanism the "GMT stays invisible to the user" requirement rests
+        // on: the zero-argument overload must re-resolve ZoneId.systemDefault() rather than
+        // caching it, so changing the platform default changes the rendered string.
+        val previous = java.util.TimeZone.getDefault()
+        try {
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/Los_Angeles"))
+            val la = TimeFormat.localTime(noonUtc)
+            java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Tokyo"))
+            val tokyo = TimeFormat.localTime(noonUtc)
+
+            assertNotEquals(la, tokyo)
+            assertEquals("Aug 3, 12:00 PM", la)
+            assertEquals("Aug 4, 4:00 AM", tokyo)
+        } finally {
+            java.util.TimeZone.setDefault(previous)
+        }
+    }
+
+    @Test
     fun `crossing a timezone changes display only, never the stored value`() {
         val tokyo = TimeFormat.localTime(noonUtc, ZoneId.of("Asia/Tokyo"))
         val la = TimeFormat.localTime(noonUtc, ZoneId.of("America/Los_Angeles"))

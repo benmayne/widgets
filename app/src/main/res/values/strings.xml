@@ -6,4 +6,5 @@
     <string name="needs_permission">Grant location permission first.</string>
     <string name="finding_location">Finding your location…</string>
     <string name="no_fix">Could not get a location fix. Try again outdoors or with Wi-Fi on.</string>
+    <string name="location_unavailable">Location services are unavailable on this device.</string>
 </resources>

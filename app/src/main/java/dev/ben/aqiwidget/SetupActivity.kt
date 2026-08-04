@@ -61,7 +61,11 @@ class SetupActivity : Activity() {
             status.text = getString(R.string.needs_permission)
             return
         }
-        val manager = getSystemService(LocationManager::class.java) ?: return
+        val manager = getSystemService(LocationManager::class.java)
+        if (manager == null) {
+            status.text = getString(R.string.location_unavailable)
+            return
+        }
         status.text = getString(R.string.finding_location)
         manager.getCurrentLocation(
             LocationManager.NETWORK_PROVIDER,
