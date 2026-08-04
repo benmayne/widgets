@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AQI</string>
+    <string name="widget_description">Current air quality at your location</string>
+    <string name="dash">—</string>
+</resources>
