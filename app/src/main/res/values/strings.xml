@@ -3,4 +3,7 @@
     <string name="app_name">AQI</string>
     <string name="widget_description">Current air quality at your location</string>
     <string name="dash">—</string>
+    <string name="needs_permission">Grant location permission first.</string>
+    <string name="finding_location">Finding your location…</string>
+    <string name="no_fix">Could not get a location fix. Try again outdoors or with Wi-Fi on.</string>
 </resources>
