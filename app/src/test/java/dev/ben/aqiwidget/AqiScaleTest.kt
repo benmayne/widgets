@@ -69,13 +69,36 @@ class AqiScaleTest {
 
     @Test
     fun `dim always moves a color closer to grey`() {
+        val greyValue = 0x9E // 158
         for (category in AqiCategory.entries) {
-            val dimmed = AqiScale.dim(category.background)
+            val original = category.background
+            val dimmed = AqiScale.dim(original)
+
+            // Assert alpha is preserved
             assertEquals("alpha preserved", 0xFF, (dimmed ushr 24) and 0xFF)
-            assertTrue(
-                "dimmed ${category.name} should differ from original",
-                dimmed != category.background || category.background == 0xFF9E9E9E.toInt()
+
+            // Check R, G, B channels move closer to grey
+            val channels = listOf(
+                Triple("R", (original shr 16) and 0xFF, (dimmed shr 16) and 0xFF),
+                Triple("G", (original shr 8) and 0xFF, (dimmed shr 8) and 0xFF),
+                Triple("B", original and 0xFF, dimmed and 0xFF)
             )
+
+            for ((name, origVal, dimmVal) in channels) {
+                if (origVal == greyValue) {
+                    assertEquals(
+                        "${category.name} $name channel already at grey should stay equal",
+                        greyValue, dimmVal
+                    )
+                } else {
+                    val origDist = Math.abs(origVal - greyValue)
+                    val dimmDist = Math.abs(dimmVal - greyValue)
+                    assertTrue(
+                        "${category.name} $name channel should move closer to grey: orig=$origVal (dist=$origDist), dimmed=$dimmVal (dist=$dimmDist), target=$greyValue",
+                        dimmDist < origDist
+                    )
+                }
+            }
         }
     }
 }
