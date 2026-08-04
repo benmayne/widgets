@@ -58,11 +58,10 @@ widgets/
         OpenMeteoProvider.kt    # default implementation
         Providers.kt            # ACTIVE constant
     src/main/res/
-      layout/widget_aqi.xml
+      layout/{widget_aqi,activity_setup}.xml
       xml/aqi_widget_info.xml
-      drawable/widget_bg.xml
-      values/{strings,colors,themes}.xml
-      mipmap-*/ic_launcher
+      drawable/{widget_bg,ic_launcher}.xml
+      values/{strings,themes}.xml
     src/test/java/dev/ben/aqiwidget/
       AqiScaleTest.kt
       OpenMeteoProviderTest.kt
@@ -323,7 +322,7 @@ testable by depending on three tiny interfaces in `Ports.kt` — `LocationSource
 | `AqiScaleTest` | Category boundaries at 0, 50/51, 100/101, 150/151, 200/201, 300/301, 500; foreground flip at the red threshold; dim blend math |
 | `OpenMeteoProviderTest` | Parses the captured real response; `current.time` converts to the correct UTC epoch millis; correct URL construction; missing or null `us_aqi` raises `IOException` |
 | `AqiRepositoryTest` | With a `FakeProvider`: fresh fetch, staleness detection at the 3h boundary, fallback to cache on fetch failure, fallback to cached coordinates when location is null, `NoLocation` when nothing is available |
-| `TimeZoneTest` | Staleness verdict is identical under several `TimeZone` defaults for the same epoch millis; the "last updated" string renders in local time and shifts when the default zone changes |
+| `TimeFormatTest` | Staleness verdict is identical under several `TimeZone` defaults for the same epoch millis; the "last updated" string renders in local time and shifts when the default zone changes |
 
 Widget rendering and the permission flow are verified manually on the device; they are not
 meaningfully unit-testable and mocking them would test the mocks.
