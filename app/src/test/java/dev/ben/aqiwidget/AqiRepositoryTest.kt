@@ -29,7 +29,11 @@ class AqiRepositoryTest {
     }
 
     private class FakeLocation(var value: Coordinates?) : LocationSource {
-        override fun lastKnown(): Coordinates? = value
+        var calls = 0
+        override fun lastKnown(): Coordinates? {
+            calls++
+            return value
+        }
     }
 
     private class FakeStore(
@@ -115,9 +119,13 @@ class AqiRepositoryTest {
     @Test
     fun `missing permission short-circuits before any network or location access`() {
         val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
-        val state = repo(provider, permission = false).refresh()
+        val location = FakeLocation(here)
+        val store = FakeStore()
+        val state = repo(provider, location = location, store = store, permission = false).refresh()
         assertEquals(RenderState.NeedsPermission, state)
-        assertEquals(0, provider.calls)
+        assertEquals("Network access was not short-circuited", 0, provider.calls)
+        assertEquals("Location access was not short-circuited", 0, location.calls)
+        assertEquals("Coordinates were saved despite missing permission", null, store.coordinates())
     }
 
     @Test
