@@ -44,7 +44,19 @@ interface AqiProvider {
 data class Reading private constructor(
     val aqi: Int,
     val observedAt: Long,
-    val station: String? = null,
+    // Defaults live on the companion's invoke, not here — this constructor is never called
+    // from source.
+    //
+    // Note on the guarantee's exact strength: Kotlin emits a public ACC_SYNTHETIC access
+    // bridge to this private constructor so the companion can reach it, and that bridge does
+    // not clamp. It is unreachable from Kotlin or Java source (javac and kotlinc both refuse
+    // to reference synthetic members), so the invariant holds for anything that could actually
+    // be written here — but it is reachable by reflection or hand-written bytecode, and no
+    // arrangement of a private constructor plus a companion factory removes it. Eliminating it
+    // entirely would mean a public constructor clamping into a renamed property, at the cost
+    // of hand-rolling equals/hashCode/toString. Not worth it for a single-module Kotlin app
+    // with no reflection or deserialization.
+    val station: String?,
 ) {
     companion object {
         operator fun invoke(aqi: Int, observedAt: Long, station: String? = null): Reading =

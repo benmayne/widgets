@@ -111,8 +111,11 @@ interface AqiProvider {
     fun fetch(lat: Double, lon: Double): Reading
 }
 
-// Reading's factory clamps aqi into 0..500; a private constructor keeps that the only way
-// to construct one, so no provider can forget it.
+// Reading's factory clamps aqi into 0..500; the private constructor makes that the only way
+// to construct one from source, so no provider can forget it. (Kotlin still emits a public
+// ACC_SYNTHETIC access bridge so the companion can reach the private constructor; it is
+// unreachable from Kotlin or Java source but not from reflection. Unavoidable with this
+// pattern, and immaterial here.)
 data class Reading private constructor(
     val aqi: Int,                  // US EPA scale, clamped to 0-500
     val observedAt: Long,          // epoch millis of measurement

@@ -103,6 +103,10 @@ class SetupActivity : Activity() {
             return
         }
         status.text = getString(R.string.finding_location)
+        // Cancel any in-flight fix first: without this, a double-tap orphans the earlier
+        // request, which onDestroy can no longer reach. This is the app's only active
+        // location use, so it should never be left running unattended.
+        locationCancellationSignal?.cancel()
         val cancellationSignal = CancellationSignal()
         locationCancellationSignal = cancellationSignal
         manager.getCurrentLocation(
