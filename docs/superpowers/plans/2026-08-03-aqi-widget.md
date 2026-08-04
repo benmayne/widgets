@@ -6,7 +6,7 @@
 
 **Architecture:** Pure-Kotlin core (`AqiScale`, `OpenMeteoProvider` parsing, `AqiRepository`) depends only on small interfaces in `Ports.kt`, so all logic is JVM-unit-testable with no emulator. A thin Android shell (`AqiWidgetProvider`, `SetupActivity`, `AppGraph`) supplies the real `LocationManager`/`SharedPreferences` implementations and renders `RemoteViews`. The data source sits behind an `AqiProvider` interface so it can be swapped without touching anything else.
 
-**Tech Stack:** Kotlin 2.0.21, AGP 8.9.2, Gradle 8.11.1, JDK 17 (Android Studio's bundled JBR), compileSdk 37, minSdk 31. Framework-only at runtime: `HttpURLConnection`, `org.json`, `RemoteViews`, `LocationManager`. JUnit 4 + a real `org.json` jar for tests.
+**Tech Stack:** AGP 9.3.0 with built-in Kotlin (no separate `org.jetbrains.kotlin.android` plugin — AGP 9.x conflicts with it), Gradle 9.5.0, JVM target 17, compileSdk 37, minSdk 31. Framework-only at runtime: `HttpURLConnection`, `org.json`, `RemoteViews`, `LocationManager`. JUnit 4 + a real `org.json` jar for tests.
 
 **Spec:** `docs/superpowers/specs/2026-08-03-aqi-widget-design.md`
 
