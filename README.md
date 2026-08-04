@@ -102,18 +102,35 @@ permissions**, so something with an `Activity` context must ask for `ACCESS_COAR
 
 ## Build
 
+Neither `JAVA_HOME` nor `adb` is set up globally on this machine, so both paths are spelled
+out. Java comes from Android Studio's bundled JBR — `/usr/bin/java` is only a stub and will
+fail with "Unable to locate a Java Runtime".
+
 ```bash
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-./gradlew :app:testDebugUnitTest    # 42 unit tests, no emulator needed
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"   # puts adb on PATH
+
+./gradlew :app:testDebugUnitTest    # 52 unit tests, no emulator needed
 ./gradlew :app:assembleDebug
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Add the three exports to `~/.zshrc` to skip them next time.
 
 Toolchain: AGP 9.3.0 with built-in Kotlin (do **not** add `org.jetbrains.kotlin.android` —
 AGP 9.x conflicts with it), Gradle 9.5.0, JVM target 17, compileSdk/targetSdk 37, minSdk 31.
 
 `minSdk 31` is required by `RemoteViews.setColorStateList` and
 `@android:dimen/system_app_widget_background_radius`.
+
+## Installing on the phone
+
+1. On the Pixel: Settings → About phone → tap **Build number** 7× to unlock Developer
+   options, then Developer options → enable **USB debugging**.
+2. Plug in over USB and accept the "Allow USB debugging?" prompt on the phone.
+3. `adb devices` should list it as `device` (not `unauthorized`). Then `adb install -r …`
+   from the Build section above.
 
 ## First run
 
@@ -123,9 +140,66 @@ AGP 9.x conflicts with it), Gradle 9.5.0, JVM target 17, compileSdk/targetSdk 37
 
 Tapping the tile refreshes it. If it shows a grey `—`, tapping opens the setup screen.
 
+## Testing locally
+
+Unit tests need nothing but a JDK:
+
+```bash
+./gradlew :app:testDebugUnitTest
+```
+
+For anything involving the widget itself, there is a preconfigured emulator (`aqi_test`,
+API 36 arm64):
+
+```bash
+"$ANDROID_HOME/emulator/emulator" -avd aqi_test -no-window -no-audio -no-boot-anim &
+adb wait-for-device
+adb root          # needed — see below
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb shell pm grant dev.ben.aqiwidget android.permission.ACCESS_COARSE_LOCATION
+```
+
+**`adb root` is required to trigger a refresh by hand.** The widget receiver is
+`android:exported="false"`, so a broadcast from the ordinary shell user is silently *enqueued
+but never delivered* — the process never even starts, and you get no error. That is the
+receiver correctly refusing broadcasts from other apps; the system's own `APPWIDGET_UPDATE`
+is exempt. As root:
+
+```bash
+# force a fetch, exactly like tapping the tile
+adb shell am broadcast --include-stopped-packages \
+  -a dev.ben.aqiwidget.ACTION_REFRESH -n dev.ben.aqiwidget/.AqiWidgetProvider
+
+# what the app actually stored
+adb shell "cat /data/data/dev.ben.aqiwidget/shared_prefs/aqi.xml"
+```
+
+`--include-stopped-packages` matters after `am force-stop` or a fresh install — a stopped
+package receives no broadcasts until something launches it.
+
+To see a specific tile state, write the prefs directly, then broadcast. `observed_at` is
+epoch millis; backdate it past 3h to get the dimmed treatment:
+
+| To see | Set |
+|---|---|
+| Yellow, black text | `aqi` 51–100, `observed_at` = now |
+| Dimmed red, white text, 3 digits | `aqi` 168, `observed_at` = now − 4h |
+| Grey `—` | `adb shell pm revoke dev.ben.aqiwidget android.permission.ACCESS_COARSE_LOCATION` |
+
+Screenshot the result with `adb shell screencap -p /sdcard/s.png && adb pull /sdcard/s.png`.
+
+Two emulator limitations worth knowing before you chase a phantom bug:
+
+- **Mock location does not work.** Modern Android refuses to let the shell uid grant itself
+  `MOCK_LOCATION`, and `adb emu geo fix` only feeds the GPS provider, which this app cannot
+  read under coarse-only permission. Seed `lat`/`lon` into the prefs instead — the app falls
+  back to cached coordinates, which is a real production path.
+- **Doze and the hourly `updatePeriodMillis` tick** can't be meaningfully observed on an
+  emulator. Those only prove out on the real phone over hours.
+
 ## Testing
 
-42 JVM unit tests cover the scale boundaries and exact dimmed colors, Open-Meteo parsing and
+52 JVM unit tests cover the scale boundaries and exact dimmed colors, Open-Meteo parsing and
 failure paths (including the fetch-time timestamp fallback), repository caching, staleness,
 and station round-tripping, and timezone invariance including the default-zone path.
 
