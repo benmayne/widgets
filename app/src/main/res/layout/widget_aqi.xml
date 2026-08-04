@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg"
+    android:theme="@style/Theme.AqiWidget.AppWidgetContainer">
+
+    <TextView
+        android:id="@+id/aqi_value"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:text="@string/dash"
+        android:textColor="#FF000000"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+</FrameLayout>
