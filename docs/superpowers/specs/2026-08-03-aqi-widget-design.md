@@ -135,6 +135,11 @@ Each provider stays small because `Http.getJson(url): JSONObject` handles the tr
 `BuildConfig` field populated from `local.properties` (gitignored). Open-Meteo needs no key
 and stays keyless; adding a keyed provider later does not mean committing a secret.
 
+**Not built.** Open-Meteo needs no key, so this plumbing was deliberately not implemented —
+`buildConfig` is not enabled and nothing reads `local.properties`. It is recorded here as the
+intended extension point, to be added alongside the first keyed provider rather than
+speculatively.
+
 **Provider selection is a compile-time constant**, not a settings screen:
 
 ```kotlin
