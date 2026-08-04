@@ -9,7 +9,11 @@ import java.net.URL
 /** Minimal JSON-over-HTTPS fetch. Framework only — no HTTP library dependency. */
 object Http {
 
-    private const val TIMEOUT_MS = 10_000
+    // Connect + read worst case is 10s, matching the goAsync budget documented in
+    // AqiWidgetProvider and the design doc's "Threading" section. Shorter also means less
+    // radio hold time, serving the battery priority; a failed fetch is benign since the
+    // cache is retained and the next hourly tick retries.
+    private const val TIMEOUT_MS = 5_000
 
     @Throws(IOException::class)
     fun getJson(url: String): JSONObject {
