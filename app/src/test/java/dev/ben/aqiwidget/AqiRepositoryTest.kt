@@ -79,9 +79,15 @@ class AqiRepositoryTest {
 
     @Test
     fun `fetch failure falls back to the cached reading instead of blanking`() {
-        val store = FakeStore(cached = CachedReading(aqi = 42, observedAt = now))
+        // Cached reading is older than FRESH_ENOUGH_MILLIS so the freshness guard doesn't
+        // short-circuit before the fetch is attempted — this test is specifically about the
+        // fetch-failure fallback, not the freshness guard (see AqiRepositoryTest freshness
+        // cases below).
+        val old = now - AqiScale.FRESH_ENOUGH_MILLIS - 1
+        val store = FakeStore(cached = CachedReading(aqi = 42, observedAt = old))
         val provider = FakeProvider(failure = IOException("offline"))
         assertEquals(RenderState.Ok(42, stale = false), repo(provider, store = store).refresh())
+        assertEquals(1, provider.calls)
     }
 
     @Test
@@ -150,5 +156,56 @@ class AqiRepositoryTest {
         val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
         assertEquals(RenderState.Ok(42, stale = false), repo(provider, store = store).cached())
         assertEquals(0, provider.calls)
+    }
+
+    @Test
+    fun `force=false with a cache fresher than 30 minutes skips both location and fetch`() {
+        val store = FakeStore(cached = CachedReading(aqi = 42, observedAt = now - 1))
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
+        val location = FakeLocation(here)
+        val state = repo(provider, location = location, store = store).refresh(force = false)
+        assertEquals(RenderState.Ok(42, stale = false), state)
+        assertEquals("fetch should have been skipped", 0, provider.calls)
+        assertEquals("location read should have been skipped", 0, location.calls)
+    }
+
+    @Test
+    fun `force=false with a cache older than 30 minutes fetches`() {
+        val old = now - AqiScale.FRESH_ENOUGH_MILLIS - 1
+        val store = FakeStore(cached = CachedReading(aqi = 42, observedAt = old))
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
+        val state = repo(provider, store = store).refresh(force = false)
+        assertEquals(RenderState.Ok(56, stale = false), state)
+        assertEquals(1, provider.calls)
+    }
+
+    @Test
+    fun `force=true fetches even when the cache is fresh`() {
+        val store = FakeStore(cached = CachedReading(aqi = 42, observedAt = now - 1))
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
+        val state = repo(provider, store = store).refresh(force = true)
+        assertEquals(RenderState.Ok(56, stale = false), state)
+        assertEquals(1, provider.calls)
+    }
+
+    @Test
+    fun `force=false with no cache at all fetches`() {
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
+        val state = repo(provider).refresh(force = false)
+        assertEquals(RenderState.Ok(56, stale = false), state)
+        assertEquals(1, provider.calls)
+    }
+
+    @Test
+    fun `missing permission wins over the freshness short-circuit`() {
+        val store = FakeStore(cached = CachedReading(aqi = 42, observedAt = now - 1))
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
+        val location = FakeLocation(here)
+        val state =
+            repo(provider, location = location, store = store, permission = false)
+                .refresh(force = false)
+        assertEquals(RenderState.NeedsPermission, state)
+        assertEquals(0, provider.calls)
+        assertEquals(0, location.calls)
     }
 }

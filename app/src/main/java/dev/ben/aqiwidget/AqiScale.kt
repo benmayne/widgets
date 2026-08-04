@@ -24,6 +24,15 @@ object AqiScale {
     /** A reading older than this is rendered dimmed. */
     const val STALE_AFTER_MILLIS: Long = 3L * 60 * 60 * 1000
 
+    /**
+     * A cached reading younger than this is served as-is on a non-forced refresh, skipping
+     * both the location read and the network fetch. Safe against the 1-hour
+     * `updatePeriodMillis`: the hourly tick's cache is always older than this, so scheduled
+     * refreshes still always fetch. Only the extra broadcasts (reboot, launcher restart,
+     * widget re-add, app update) get skipped, since upstream data only changes hourly anyway.
+     */
+    const val FRESH_ENOUGH_MILLIS: Long = 30L * 60 * 1000
+
     /** Widget background for NeedsPermission / NoLocation / NoData — no AQI to color by. */
     val NEUTRAL_BACKGROUND = 0xFF616161.toInt()
 

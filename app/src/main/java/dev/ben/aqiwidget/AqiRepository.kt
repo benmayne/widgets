@@ -23,9 +23,25 @@ class AqiRepository(
      * reading exists. That is intentional and distinct from the never-blank-on-failure rule:
      * a revoked permission is a configuration problem only the user can fix, and the tile's
      * tap target must route to SetupActivity to say so.
+     *
+     * When [force] is false and a cached reading exists younger than
+     * [AqiScale.FRESH_ENOUGH_MILLIS], returns [cached] immediately without reading location or
+     * hitting the network — the cheapest possible path. This guards against the many system
+     * broadcasts (reboot, launcher restart, widget re-add, app update) that arrive via
+     * `ACTION_APPWIDGET_UPDATE` far more often than data actually changes upstream. Pass
+     * `force = true` for user-initiated refreshes, which should always hit the network.
      */
-    fun refresh(): RenderState {
+    fun refresh(force: Boolean = false): RenderState {
         if (!hasPermission()) return RenderState.NeedsPermission
+
+        if (!force) {
+            val cachedReading = store.reading()
+            if (cachedReading != null &&
+                clock.now() - cachedReading.observedAt < AqiScale.FRESH_ENOUGH_MILLIS
+            ) {
+                return cached()
+            }
+        }
 
         val coordinates = location.lastKnown()?.also(store::saveCoordinates)
             ?: store.coordinates()

@@ -26,11 +26,14 @@ class AqiWidgetProvider : AppWidgetProvider() {
             super.onReceive(context, intent)
             return
         }
+        // The user tapped: always honor it and hit the network. A scheduled/system broadcast
+        // may be served from cache when it's fresh enough — see AqiRepository.refresh.
+        val force = intent.action == ACTION_REFRESH
         val pending = goAsync()
         val app = context.applicationContext
         EXECUTOR.execute {
             try {
-                render(app, AppGraph.repository(app).refresh())
+                render(app, AppGraph.repository(app).refresh(force = force))
             } catch (t: Throwable) {
                 Log.e(TAG, "widget update failed", t)
             } finally {
