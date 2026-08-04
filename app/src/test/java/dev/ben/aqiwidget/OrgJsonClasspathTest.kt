@@ -4,11 +4,13 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class ScaffoldTest {
-    @Test
-    fun `unit tests run on the jvm`() {
-        assertEquals(4, 2 + 2)
-    }
+/**
+ * Guards a specific classpath hazard: with `unitTests.isReturnDefaultValues = true`, the
+ * android.jar stub's org.json classes silently return default values (e.g. 0) instead of
+ * throwing, so a build misconfiguration that let the stub win over the real `org.json:json`
+ * dependency would fail silently rather than loudly. This test would catch that.
+ */
+class OrgJsonClasspathTest {
 
     @Test
     fun `real org_json is on the test classpath, not the android stub`() {
