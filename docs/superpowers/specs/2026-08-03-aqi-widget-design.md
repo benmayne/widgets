@@ -162,6 +162,18 @@ unambiguously — Open-Meteo can, given the above — and otherwise to the fetch
 matters because staleness dimming is meant to express *"how old is this measurement,"* not
 *"how long since we last made a request."*
 
+**GMT is a wire-format detail and must stay invisible to the user.** Three requirements
+follow, and they are testable rather than aspirational:
+
+1. `observedAt` is stored and compared **only as epoch millis**. Staleness arithmetic is
+   therefore timezone-independent by construction — no local-time math anywhere.
+2. Every user-facing timestamp — the "last updated" line in `SetupActivity` is currently the
+   only one — is rendered in the **device's current local timezone** via
+   `ZoneId.systemDefault()`, resolved at render time rather than cached.
+3. Because both of the above resolve at read time, crossing a timezone (or a DST boundary)
+   changes only how an existing reading is *displayed*, never whether it is considered
+   stale, and never its stored value. No migration or refresh is needed on timezone change.
+
 No API key, no signup, free for non-commercial use, ~250-byte response, returns `us_aqi`
 directly on the US EPA scale so no normalization math is needed. It is a CAMS model forecast
 interpolated to the coordinates rather than a ground-sensor reading — an estimate, which is
@@ -279,6 +291,7 @@ testable by depending on three tiny interfaces in `Ports.kt` — `LocationSource
 | `AqiScaleTest` | Category boundaries at 0, 50/51, 100/101, 150/151, 200/201, 300/301, 500; foreground flip at the red threshold; dim blend math |
 | `OpenMeteoProviderTest` | Parses the captured real response; `current.time` converts to the correct UTC epoch millis; correct URL construction; missing or null `us_aqi` raises `IOException` |
 | `AqiRepositoryTest` | With a `FakeProvider`: fresh fetch, staleness detection at the 3h boundary, fallback to cache on fetch failure, fallback to cached coordinates when location is null, `NoLocation` when nothing is available |
+| `TimeZoneTest` | Staleness verdict is identical under several `TimeZone` defaults for the same epoch millis; the "last updated" string renders in local time and shifts when the default zone changes |
 
 Widget rendering and the permission flow are verified manually on the device; they are not
 meaningfully unit-testable and mocking them would test the mocks.
