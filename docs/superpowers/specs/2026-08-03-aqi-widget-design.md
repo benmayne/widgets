@@ -111,11 +111,17 @@ interface AqiProvider {
 }
 
 data class Reading(
-    val aqi: Int,                  // US EPA scale, 0-500
+    val aqi: Int,                  // US EPA scale, clamped to 0-500
     val observedAt: Long,          // epoch millis of measurement
     val station: String? = null    // station-based providers only; null for model-based
 )
 ```
+
+Providers **clamp** `aqi` into `0..500` rather than throwing on an out-of-range value. An
+anomalous reading still carries directional meaning — above 500 genuinely is hazardous — so
+clamping keeps the tile current and correctly colored at the extreme instead of falling back
+to stale data. Without enforcement the scale contract would be documentation nobody checks,
+which matters most for a provider swapped in later whose scale has not been verified by hand.
 
 `station` is nullable to preserve a real asymmetry rather than flatten it: Open-Meteo is
 model-based and has no station, while WAQI and AirNow do. The 1x1 tile ignores it;
