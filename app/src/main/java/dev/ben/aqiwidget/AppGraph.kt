@@ -61,8 +61,10 @@ class PrefsReadingStore(context: Context) : ReadingStore {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("aqi", Context.MODE_PRIVATE)
 
-    override fun saveReading(aqi: Int, observedAt: Long) {
-        prefs.edit().putInt(KEY_AQI, aqi).putLong(KEY_OBSERVED_AT, observedAt).apply()
+    override fun saveReading(aqi: Int, observedAt: Long, station: String?) {
+        val editor = prefs.edit().putInt(KEY_AQI, aqi).putLong(KEY_OBSERVED_AT, observedAt)
+        if (station == null) editor.remove(KEY_STATION) else editor.putString(KEY_STATION, station)
+        editor.apply()
     }
 
     override fun saveCoordinates(c: Coordinates) {
@@ -74,7 +76,11 @@ class PrefsReadingStore(context: Context) : ReadingStore {
 
     override fun reading(): CachedReading? {
         if (!prefs.contains(KEY_AQI)) return null
-        return CachedReading(prefs.getInt(KEY_AQI, 0), prefs.getLong(KEY_OBSERVED_AT, 0L))
+        return CachedReading(
+            prefs.getInt(KEY_AQI, 0),
+            prefs.getLong(KEY_OBSERVED_AT, 0L),
+            prefs.getString(KEY_STATION, null),
+        )
     }
 
     override fun coordinates(): Coordinates? {
@@ -89,6 +95,7 @@ class PrefsReadingStore(context: Context) : ReadingStore {
         // Float is plenty: ~1m of precision at these magnitudes, far finer than AQI varies.
         const val KEY_AQI = "aqi"
         const val KEY_OBSERVED_AT = "observed_at"
+        const val KEY_STATION = "station"
         const val KEY_LAT = "lat"
         const val KEY_LON = "lon"
     }

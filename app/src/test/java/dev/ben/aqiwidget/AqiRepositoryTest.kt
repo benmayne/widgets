@@ -40,8 +40,8 @@ class AqiRepositoryTest {
         private var cached: CachedReading? = null,
         private var coords: Coordinates? = null,
     ) : ReadingStore {
-        override fun saveReading(aqi: Int, observedAt: Long) {
-            cached = CachedReading(aqi, observedAt)
+        override fun saveReading(aqi: Int, observedAt: Long, station: String?) {
+            cached = CachedReading(aqi, observedAt, station)
         }
         override fun saveCoordinates(c: Coordinates) {
             coords = c
@@ -114,6 +114,22 @@ class AqiRepositoryTest {
         val provider = FakeProvider(Reading(aqi = 56, observedAt = now))
         repo(provider, store = store).refresh()
         assertEquals(here, store.coordinates())
+    }
+
+    @Test
+    fun `a station-based reading round-trips through save and read`() {
+        val store = FakeStore()
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now, station = "US Diplomatic Post"))
+        repo(provider, store = store).refresh()
+        assertEquals("US Diplomatic Post", store.reading()?.station)
+    }
+
+    @Test
+    fun `a model-based reading with no station stays null after save and read`() {
+        val store = FakeStore()
+        val provider = FakeProvider(Reading(aqi = 56, observedAt = now, station = null))
+        repo(provider, store = store).refresh()
+        assertEquals(null, store.reading()?.station)
     }
 
     @Test

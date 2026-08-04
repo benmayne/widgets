@@ -20,10 +20,10 @@ interface LocationSource {
     fun lastKnown(): Coordinates?
 }
 
-data class CachedReading(val aqi: Int, val observedAt: Long)
+data class CachedReading(val aqi: Int, val observedAt: Long, val station: String? = null)
 
 interface ReadingStore {
-    fun saveReading(aqi: Int, observedAt: Long)
+    fun saveReading(aqi: Int, observedAt: Long, station: String?)
     fun saveCoordinates(c: Coordinates)
     fun reading(): CachedReading?
     fun coordinates(): Coordinates?

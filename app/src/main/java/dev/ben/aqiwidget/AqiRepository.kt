@@ -33,8 +33,8 @@ class AqiRepository(
 
         return try {
             val reading = provider.fetch(coordinates.lat, coordinates.lon)
-            store.saveReading(reading.aqi, reading.observedAt)
-            toState(CachedReading(reading.aqi, reading.observedAt))
+            store.saveReading(reading.aqi, reading.observedAt, reading.station)
+            toState(CachedReading(reading.aqi, reading.observedAt, reading.station))
         } catch (e: IOException) {
             // Never blank a good value on a failed fetch. The next hourly tick retries.
             cached()

@@ -97,6 +97,11 @@ class SetupActivity : Activity() {
                 if (AqiScale.isStale(reading.observedAt, System.currentTimeMillis())) {
                     appendLine("(stale — over 3 hours old)")
                 }
+                // Only station-based providers (WAQI, AirNow) populate this; Open-Meteo's
+                // model-based reading has none, so this line is absent for the shipped provider.
+                if (reading.station != null) {
+                    appendLine("Station: ${reading.station}")
+                }
             }
             appendLine()
             appendLine(
