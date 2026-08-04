@@ -104,6 +104,12 @@ class AqiScaleTest {
     }
 
     @Test
+    fun `neutral-state colors used by the widget's no-data tile are pinned`() {
+        assertEquals(0xFF616161.toInt(), AqiScale.NEUTRAL_BACKGROUND)
+        assertEquals(0xFFFFFFFF.toInt(), AqiScale.NEUTRAL_FOREGROUND)
+    }
+
+    @Test
     fun `dim is a no-op on grey itself`() {
         val grey = 0xFF9E9E9E.toInt()
         assertEquals(grey, AqiScale.dim(grey))

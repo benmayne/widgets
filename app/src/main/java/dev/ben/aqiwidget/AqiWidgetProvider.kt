@@ -44,8 +44,6 @@ class AqiWidgetProvider : AppWidgetProvider() {
 
         private const val TAG = "AqiWidget"
         private val EXECUTOR = Executors.newSingleThreadExecutor()
-        private val GREY = 0xFF616161.toInt()
-        private val WHITE = 0xFFFFFFFF.toInt()
 
         /** Broadcasts a refresh request. Safe to call from the main thread. */
         fun requestRefresh(context: Context) {
@@ -85,12 +83,12 @@ class AqiWidgetProvider : AppWidgetProvider() {
                 )
             } else {
                 views.setTextViewText(R.id.aqi_value, context.getString(R.string.dash))
-                views.setTextColor(R.id.aqi_value, WHITE)
+                views.setTextColor(R.id.aqi_value, AqiScale.NEUTRAL_FOREGROUND)
                 views.setTextViewTextSize(R.id.aqi_value, TypedValue.COMPLEX_UNIT_SP, 24f)
                 views.setColorStateList(
                     R.id.widget_root,
                     "setBackgroundTintList",
-                    ColorStateList.valueOf(GREY),
+                    ColorStateList.valueOf(AqiScale.NEUTRAL_BACKGROUND),
                 )
             }
             views.setOnClickPendingIntent(R.id.widget_root, tapIntent(context, state))

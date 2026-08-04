@@ -24,7 +24,14 @@ object AqiScale {
     /** A reading older than this is rendered dimmed. */
     const val STALE_AFTER_MILLIS: Long = 3L * 60 * 60 * 1000
 
-    private val GREY = 0xFF9E9E9E.toInt()
+    /** Widget background for NeedsPermission / NoLocation / NoData — no AQI to color by. */
+    val NEUTRAL_BACKGROUND = 0xFF616161.toInt()
+
+    /** Widget foreground (the "—" glyph) to pair with [NEUTRAL_BACKGROUND]. */
+    val NEUTRAL_FOREGROUND = 0xFFFFFFFF.toInt()
+
+    /** Target color for [dim]'s stale-reading blend. Distinct from the neutral-state greys. */
+    private val BLEND_GREY = 0xFF9E9E9E.toInt()
     private const val DIM_PERCENT = 55
 
     fun categoryFor(aqi: Int): AqiCategory = when {
@@ -44,7 +51,7 @@ object AqiScale {
      * Uses integer math rather than floats: float rounding at an exact .5 boundary is
      * not reproducible across platforms, which would make the result untestable.
      */
-    fun dim(color: Int): Int = blend(color, GREY, DIM_PERCENT)
+    fun dim(color: Int): Int = blend(color, BLEND_GREY, DIM_PERCENT)
 
     private fun blend(from: Int, to: Int, percentToward: Int): Int {
         fun channel(shift: Int): Int {
