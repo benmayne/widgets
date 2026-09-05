@@ -155,6 +155,36 @@ for emulator testing will not work — the receiver is `exported="false"` and si
 Drive the app's own buttons instead (`adb shell input tap X Y`, coordinates from
 `adb shell uiautomator dump /sdcard/ui.xml`), or just tap the phone.
 
+## Releases
+
+Pushing a `v*` tag builds, signs, and publishes the APK to a GitHub Release via
+`.github/workflows/release.yml`:
+
+```bash
+git tag v1.1 && git push origin v1.1
+```
+
+Open the release page on the phone, download `aqiwidget-1.1.apk`, tap it. Each release's
+`versionCode` is the workflow run number, so every build is tap-installable over the last one
+without `adb`. The tag (minus the `v`) becomes `versionName`.
+
+Signing is driven by environment variables read in `app/build.gradle.kts`, so a local
+`assembleRelease` with none of them set simply produces `app-release-unsigned.apk`. The
+workflow needs four repository secrets:
+
+| Secret | Value |
+|---|---|
+| `RELEASE_KEYSTORE_BASE64` | `base64 -i release.jks` |
+| `RELEASE_KEYSTORE_PASSWORD` | keystore password |
+| `RELEASE_KEY_ALIAS` | key alias |
+| `RELEASE_KEY_PASSWORD` | key password |
+
+The keystore lives at `~/.android/aqiwidget-release.jks` with its passwords in
+`~/.android/aqiwidget-release.env`. **Back both up.** A release-signed APK can only be updated
+by another APK signed with the same key, so losing it means uninstalling before the next
+release. It also cannot update a debug-signed install: uninstall the `adb install` build once
+before the first release install.
+
 ## Installing over USB
 
 1. On the Pixel: Settings → About phone → tap **Build number** 7× to unlock Developer

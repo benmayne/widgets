@@ -9,3 +9,7 @@
 .externalNativeBuild
 .cxx
 .kotlin/
+
+# Release signing key. Never commit; CI receives it as a base64 secret.
+*.jks
+*.keystore
