@@ -124,7 +124,38 @@ AGP 9.x conflicts with it), Gradle 9.5.0, JVM target 17, compileSdk/targetSdk 37
 `minSdk 31` is required by `RemoteViews.setColorStateList` and
 `@android:dimen/system_app_widget_background_radius`.
 
-## Installing on the phone
+## Connecting over Wi-Fi (no cable)
+
+Wireless debugging is the easier path, and the only one that works if your USB-C cable is
+charge-only — a very common failure. The tell: the phone charges, but `adb devices` is empty
+*and* `system_profiler SPUSBDataType` shows nothing enumerating. If the Mac sees no USB device
+at all (rather than an `unauthorized` one), no amount of toggling USB debugging will help —
+the cable has no data lines. Many cables bundled with chargers and power banks are like this.
+
+Phone and Mac must be on the same Wi-Fi. Then:
+
+1. **Settings → System → Developer options → Wireless debugging** → on
+2. Tap **Pair device with pairing code** — note the 6-digit code and the `IP:port` shown
+3. Pair, using *that* port:
+   ```bash
+   adb pair 192.168.1.144:37403 735737
+   ```
+4. Connect, using the **different** `IP:port` from the main Wireless debugging screen — this
+   is the step everyone gets wrong; the pairing port is not the connection port:
+   ```bash
+   adb connect 192.168.1.144:35257
+   adb devices          # should list the phone as `device`
+   ```
+
+Pairing persists across reboots; the connect port changes each time wireless debugging is
+toggled off and on.
+
+**On a production phone `adb root` is unavailable**, so the hand-sent refresh broadcast used
+for emulator testing will not work — the receiver is `exported="false"` and silently drops it.
+Drive the app's own buttons instead (`adb shell input tap X Y`, coordinates from
+`adb shell uiautomator dump /sdcard/ui.xml`), or just tap the phone.
+
+## Installing over USB
 
 1. On the Pixel: Settings → About phone → tap **Build number** 7× to unlock Developer
    options, then Developer options → enable **USB debugging**.
@@ -196,6 +227,13 @@ Two emulator limitations worth knowing before you chase a phantom bug:
   back to cached coordinates, which is a real production path.
 - **Doze and the hourly `updatePeriodMillis` tick** can't be meaningfully observed on an
   emulator. Those only prove out on the real phone over hours.
+
+Verified on a real Pixel 10 Pro (Android 17, API 37): the one-shot fix returned real
+coordinates, the fetch stored AQI 66 with a timestamp matching the live API exactly. Worth
+knowing — on that first run the passive location cache was **empty** despite the phone being
+in daily use, so the widget had no location until the one-shot button was pressed. That is the
+cold-start case the button exists for. Once seeded, the coordinate persists in
+`SharedPreferences`, so the widget always has a fallback thereafter.
 
 ## Testing
 
